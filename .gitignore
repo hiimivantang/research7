@@ -1,0 +1,6 @@
+.env
+tasks/
+CLAUDE*.md
+prd.json.example
+prd.json
+ralph.sh
