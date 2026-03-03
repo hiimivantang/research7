@@ -2,6 +2,9 @@
   "name": "research7",
   "version": "0.1.0",
   "private": true,
+  "bin": {
+    "research7-mcp": "dist/mcp-server.js"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
