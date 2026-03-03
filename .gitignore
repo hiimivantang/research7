@@ -4,3 +4,5 @@ CLAUDE*.md
 prd.json.example
 prd.json
 ralph.sh
+.entire/
+.claude/
