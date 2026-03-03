@@ -71,6 +71,7 @@ export async function POST(
       authors: authorsString,
       year: paper.year ?? 0,
       abstract: paper.abstract,
+      citationCount: paper.citationCount ?? 0,
       url: paper.url,
       vectorizedAt,
       openai_embedding: openaiEmbedding,
@@ -85,6 +86,7 @@ export async function POST(
       year: paper.year,
       abstract: paper.abstract,
       url: paper.url,
+      citationCount: paper.citationCount,
       vectorized: true,
       vectorizedAt,
     });

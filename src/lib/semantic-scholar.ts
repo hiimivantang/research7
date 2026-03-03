@@ -36,6 +36,7 @@ export interface Paper {
   year: number | null;
   authors: Author[];
   abstract: string | null;
+  citationCount: number | null;
   embedding: {
     specter_v2: PaperEmbedding | null;
   } | null;
@@ -112,7 +113,7 @@ export async function searchPapers(query: string): Promise<PaperMatch[]> {
  * @returns Full paper object.
  */
 export async function getPaper(paperId: string): Promise<Paper> {
-  const fields = "url,year,authors,abstract,embedding";
+  const fields = "url,year,authors,abstract,citationCount,embedding";
   const url = `${S2_BASE}/paper/${encodeURIComponent(paperId)}?fields=${fields}`;
   return s2Fetch<Paper>(url);
 }

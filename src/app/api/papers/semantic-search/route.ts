@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
           ? result.abstract.slice(0, 500)
           : (result.abstract as string),
       url: result.url as string,
+      citationCount: result.citationCount as number,
       score: result.score,
     }));
 

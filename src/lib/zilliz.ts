@@ -68,6 +68,10 @@ export async function initCollection(): Promise<void> {
         analyzer_params: { type: "english" },
       },
       {
+        name: "citationCount",
+        data_type: DataType.Int32,
+      },
+      {
         name: "url",
         data_type: DataType.VarChar,
         max_length: 512,
@@ -121,6 +125,7 @@ export interface PaperRecord {
   authors: string;
   year: number;
   abstract: string;
+  citationCount: number;
   url: string;
   vectorizedAt: number;
   openai_embedding: number[];
@@ -181,6 +186,7 @@ export async function searchByVector(
       "authors",
       "year",
       "abstract",
+      "citationCount",
       "url",
       "vectorizedAt",
     ],
@@ -211,6 +217,7 @@ export async function searchByText(
       "authors",
       "year",
       "abstract",
+      "citationCount",
       "url",
       "vectorizedAt",
     ],
