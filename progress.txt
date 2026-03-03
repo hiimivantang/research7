@@ -8,6 +8,8 @@ Started: Tue  3 Mar 2026 16:06:41 +08
 - Lambda handler returns `{ "statusCode": N, "body": json.dumps({...}) }` pattern
 - `src/lib/env.ts` exports a validated config object — import it as `import config from "@/lib/env"` to access environment variables
 - `dotenv` is already a dependency; env.ts calls `dotenv.config()` at import time
+- All SDK clients (MilvusClient, LambdaClient) use lazy initialization — never instantiate at module level
+- Next.js build evaluates API routes at build time; skip env validation during build via `NEXT_PHASE` check
 - `src/lib/lambda.ts` exports `generateEmbedding(text)` — invoke AWS Lambda to get OpenAI embeddings; import as `import { generateEmbedding } from "@/lib/lambda"`
 - Lambda response follows `{ statusCode, body }` pattern where body is a JSON string containing `{ embedding, model, dimensions }`
 - Semantic Scholar `Paper` type includes `title` (always returned by default by S2 API) — added in US-008
@@ -16,6 +18,17 @@ Started: Tue  3 Mar 2026 16:06:41 +08
 - `src/app/page.tsx` is a `"use client"` component — all UI interactivity (search, vectorization, semantic search) lives here
 - Semantic search API: `GET /api/papers/semantic-search?q={query}` returns `SemanticSearchResult[]` with `score` as 0-1 float
 
+---
+
+## 2026-03-03 - US-001
+- Initialized Next.js 14+ project with App Router and TypeScript
+- Files created: package.json, tsconfig.json, next.config.mjs, postcss.config.mjs, .eslintrc.json, src/app/layout.tsx, src/app/page.tsx, src/app/globals.css, src/lib/.gitkeep, lambda/.gitkeep
+- Mode: team (parallel)
+- **Learnings for future iterations:**
+  - `create-next-app` refuses to run in a directory with existing files; manual setup required
+  - ESLint 9 is incompatible with `eslint-config-next@14`; must use ESLint 8
+  - `@types/react@19` conflicts with React 18; must pin to `@types/react@^18`
+  - Tailwind CSS v4 uses `@import "tailwindcss"` syntax and `@tailwindcss/postcss` plugin
 ---
 
 ## 2026-03-03 - US-002
@@ -41,6 +54,36 @@ Started: Tue  3 Mar 2026 16:06:41 +08
   - `SEMANTIC_SCHOLAR_API_KEY` is optional; all other env vars are required
   - `dotenv.config()` is called at module load time in env.ts, so `.env` is loaded automatically
   - Typecheck script is available as `npm run typecheck` or `./node_modules/.bin/tsc --noEmit`
+---
+
+## 2026-03-03 - US-005
+- Implemented Zilliz Cloud client with collection auto-creation
+- Files created: src/lib/zilliz.ts
+- Mode: team (parallel)
+- **Learnings for future iterations:**
+  - MilvusClient must be lazy-initialized (not at module level) to avoid build-time errors when env vars are missing
+  - Collection schema uses DataType enum from @zilliz/milvus2-sdk-node
+  - AUTOINDEX with COSINE metric works for both vector fields
+  - Must call loadCollection() after createCollection() for the collection to be searchable
+---
+
+## 2026-03-03 - US-006
+- Implemented Semantic Scholar API client
+- Files created: src/lib/semantic-scholar.ts
+- Mode: team (parallel)
+- **Learnings for future iterations:**
+  - S2 autocomplete response shape: `{ matches: [{ id, title, authorsYear }] }`
+  - S2 paper detail always returns `paperId` and `title` by default
+  - Use `encodeURIComponent` for paper IDs in URLs (some IDs contain special chars)
+---
+
+## 2026-03-03 - US-007
+- Implemented paper search REST endpoint with vectorization status
+- Files created: src/app/api/papers/search/route.ts
+- Mode: team (parallel)
+- **Learnings for future iterations:**
+  - Must call initCollection() before using paperExists() in API routes
+  - Promise.all is effective for parallel paperExists() checks across search results
 ---
 
 ## 2026-03-03 - US-008 / US-009
@@ -105,4 +148,28 @@ Started: Tue  3 Mar 2026 16:06:41 +08
   - `semanticSearched` boolean tracks whether a search has been performed (to distinguish "no results" from "hasn't searched yet")
   - The semantic search API returns `score` as 0-1 float; multiply by 100 and `Math.round()` for percentage display
   - Enter key support on the search input improves UX for keyboard users
+---
+
+## 2026-03-03 - US-010
+- Implemented MCP server with tools and dual transports
+- Files created: src/mcp-server.ts
+- Files modified: package.json (added bin field)
+- Mode: team (parallel)
+- **Learnings for future iterations:**
+  - MCP SDK uses Zod v4 for tool parameter schemas
+  - Three tools: resolve-paper-id, fetch-paper, search-papers
+  - SSE transport activated via --sse flag or SSE_PORT env var
+  - bin field in package.json: `"research7-mcp": "dist/mcp-server.js"`
+  - Tools return CallToolResult with JSON-stringified content; errors use isError: true
+---
+
+## 2026-03-03 - Build Fix
+- Fixed lazy initialization of env config, MilvusClient, and LambdaClient
+- Files modified: src/lib/env.ts, src/lib/zilliz.ts, src/lib/lambda.ts
+- Mode: team (leader)
+- **Learnings for future iterations:**
+  - Next.js build evaluates API routes at build time — module-level client instantiation fails without env vars
+  - Use Proxy pattern for env config to defer validation to runtime
+  - Check `process.env.NEXT_PHASE !== "phase-production-build"` to skip validation during build
+  - All SDK clients (MilvusClient, LambdaClient) must be lazy-initialized with getter functions
 ---
