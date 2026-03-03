@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "e662c895b70f",
+  "strategy": "manual-commit",
+  "branch": "ralph/research-paper-context-service",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "src/lib/lambda.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/e6/62c895b70f/0/metadata.json",
+      "transcript": "/e6/62c895b70f/0/full.jsonl",
+      "context": "/e6/62c895b70f/0/context.md",
+      "content_hash": "/e6/62c895b70f/0/content_hash.txt",
+      "prompt": "/e6/62c895b70f/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 642,
+    "cache_creation_tokens": 42474,
+    "cache_read_tokens": 1164365,
+    "output_tokens": 13869,
+    "api_call_count": 26
+  }
+}
