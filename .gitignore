@@ -1,4 +1,29 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+
+# production
+build/
+dist/
+
+# env files
 .env
+.env*.local
+
+# debug
+npm-debug.log*
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# misc
+.DS_Store
+
+# project-specific
 tasks/
 CLAUDE*.md
 prd.json.example
@@ -6,3 +31,5 @@ prd.json
 ralph.sh
 .entire/
 .claude/
+.last-branch
+progress.txt
