@@ -1,0 +1,108 @@
+# Ralph Progress Log
+Started: Tue  3 Mar 2026 16:06:41 +08
+
+## Codebase Patterns
+- Lambda Python code lives in `lambda/` subdirectory, independent of the TypeScript project
+- Use `uvx ruff check` and `uvx ruff format` for Python linting (ruff is not installed globally, use uvx to run it)
+- SAM template uses `Globals` section for shared function config (runtime, memory, timeout)
+- Lambda handler returns `{ "statusCode": N, "body": json.dumps({...}) }` pattern
+- `src/lib/env.ts` exports a validated config object — import it as `import config from "@/lib/env"` to access environment variables
+- `dotenv` is already a dependency; env.ts calls `dotenv.config()` at import time
+- `src/lib/lambda.ts` exports `generateEmbedding(text)` — invoke AWS Lambda to get OpenAI embeddings; import as `import { generateEmbedding } from "@/lib/lambda"`
+- Lambda response follows `{ statusCode, body }` pattern where body is a JSON string containing `{ embedding, model, dimensions }`
+- Semantic Scholar `Paper` type includes `title` (always returned by default by S2 API) — added in US-008
+- Next.js 14+ App Router dynamic route params are `Promise<{...}>` — must `await params` before accessing values
+- For debounced search in React: use `useEffect` with `setTimeout` (300ms) + `AbortController` cleanup to cancel in-flight requests
+- `src/app/page.tsx` is a `"use client"` component — all UI interactivity (search, vectorization, semantic search) lives here
+- Semantic search API: `GET /api/papers/semantic-search?q={query}` returns `SemanticSearchResult[]` with `score` as 0-1 float
+
+---
+
+## 2026-03-03 - US-002
+- Implemented AWS Lambda embedding function and SAM template
+- Files created:
+  - `lambda/lambda_function.py` - Handler that accepts `{ "text": "..." }`, generates OpenAI embedding, returns result with error handling
+  - `lambda/requirements.txt` - openai>=1.0.0 dependency
+  - `lambda/template.yaml` - SAM template with Python 3.12, 256MB memory, 30s timeout, OPENAI_API_KEY parameter
+- **Learnings for future iterations:**
+  - No global Python linters installed; use `uvx ruff check` and `uvx ruff format` to lint/format Python files
+  - `py_compile` generates `__pycache__/` -- ensure it's in .gitignore
+  - The `openai` package exports `OpenAIError` for catching API errors
+  - SAM template uses `!Ref` to pass CloudFormation parameters as environment variables
+---
+
+## 2026-03-03 - US-003
+- Set up .env configuration and validation
+- Files created:
+  - `.env.example` - Documents all required and optional environment variables with comments
+  - `src/lib/env.ts` - Validates required env vars at import time, exports typed config object
+- **Learnings for future iterations:**
+  - Import config as `import config from "@/lib/env"` — it validates on first import and throws with a clear list of missing vars
+  - `SEMANTIC_SCHOLAR_API_KEY` is optional; all other env vars are required
+  - `dotenv.config()` is called at module load time in env.ts, so `.env` is loaded automatically
+  - Typecheck script is available as `npm run typecheck` or `./node_modules/.bin/tsc --noEmit`
+---
+
+## 2026-03-03 - US-008 / US-009
+- Implemented vectorize paper REST endpoint (US-008) and semantic search REST endpoint (US-009)
+- Files created:
+  - `src/lib/lambda.ts` - Lambda helper using `@aws-sdk/client-lambda` to invoke embedding function; exports `generateEmbedding(text)`
+  - `src/app/api/papers/[paperId]/vectorize/route.ts` - POST handler with guard (409 if already vectorized), abstract validation (400), S2 fetch, dual embedding (OpenAI via Lambda + SPECTER v2 from S2), and Zilliz insert
+  - `src/app/api/papers/semantic-search/route.ts` - GET handler with query validation (400), embedding via Lambda, vector search via Zilliz, truncated abstracts (500 chars)
+- Files modified:
+  - `src/lib/semantic-scholar.ts` - Added `title` field to `Paper` interface (S2 returns it by default)
+  - `prd.json` - Marked US-008 and US-009 as `passes: true`
+- **Learnings for future iterations:**
+  - S2 paper detail API always returns `paperId` and `title` by default; no need to request them in the `fields` parameter
+  - In Next.js 14+ App Router, dynamic route params are typed as `Promise<{...}>` and must be awaited
+  - Lambda `InvokeCommand` accepts `Payload` as `Uint8Array` — use `new TextEncoder().encode(JSON.stringify(...))` to serialize
+  - Lambda response `Payload` is also `Uint8Array` — use `new TextDecoder().decode(...)` to read it
+  - The Lambda handler returns `{ statusCode, body }` where `body` is a JSON string that needs a second `JSON.parse()`
+  - Zilliz `searchByVector` results use `[key: string]: unknown` so type assertions are needed when mapping fields
+---
+
+## 2026-03-03 - US-011
+- Implemented web frontend for paper search and vectorization
+- Files modified:
+  - `src/app/page.tsx` - Converted to client component with full search + vectorization UI
+- **What was implemented:**
+  - Search input with 300ms debounced autocomplete using `useEffect` + `setTimeout`
+  - Results dropdown calling `GET /api/papers/search?q={query}`
+  - Each result shows title, authorsYear, and vectorization status badge
+  - Green "Vectorized" badge / gray "Not vectorized" badge using Tailwind ring utilities
+  - "Vectorize" button calling `POST /api/papers/{paperId}/vectorize`
+  - Button disabled when already vectorized
+  - Loading spinner on button during vectorization (SVG animation)
+  - Success/error toast notifications (custom implementation, no external deps)
+  - AbortController for cancelling in-flight search requests on new input
+  - Click-outside handler to close dropdown
+- **Learnings for future iterations:**
+  - Tailwind v4 with `@import "tailwindcss"` works with all standard utility classes including `ring-inset`, `animate-spin`, etc.
+  - For debounced search, combine `setTimeout` with `AbortController` in a `useEffect` cleanup to avoid race conditions
+  - `next build` fails at "Collecting page data" stage when env vars are missing for API routes — this is a pre-existing issue with env validation in `src/lib/env.ts`, not a typecheck issue
+  - Client components (`"use client"`) don't need server-side env vars, so the page.tsx itself builds fine
+---
+
+## 2026-03-03 - US-012
+- Implemented web frontend semantic search view
+- Files modified:
+  - `src/app/page.tsx` - Added semantic search section below existing paper discovery search
+- **What was implemented:**
+  - `SemanticSearchResult` TypeScript interface for the API response type
+  - Separate state variables for semantic search: `semanticQuery`, `semanticResults`, `isSemanticSearching`, `semanticSearched`
+  - Visual separator ("or" divider) between paper discovery and semantic search sections
+  - "Semantic Search" heading with descriptive subtitle
+  - Text input with sparkle icon + "Search" button (click/Enter to search, not debounced)
+  - Calls `GET /api/papers/semantic-search?q={query}` on submit
+  - Loading state with animated spinner and "Searching vectorized papers..." text
+  - Empty state: "No papers vectorized yet. Use the search above to find and vectorize papers."
+  - Results list with: similarity score as percentage (e.g., "95%"), title as clickable link, authors, year, truncated abstract (200 chars)
+  - Each result links to Semantic Scholar via the `url` field (title link + external link icon)
+  - Error handling with toast notifications
+  - Reuses existing `Spinner`, `ToastContainer`, and `addToast` from US-011
+- **Learnings for future iterations:**
+  - Semantic search section is additive — all existing discovery search code is preserved untouched
+  - `semanticSearched` boolean tracks whether a search has been performed (to distinguish "no results" from "hasn't searched yet")
+  - The semantic search API returns `score` as 0-1 float; multiply by 100 and `Math.round()` for percentage display
+  - Enter key support on the search input improves UX for keyboard users
+---

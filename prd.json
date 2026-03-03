@@ -1,0 +1,234 @@
+{
+  "project": "Research7",
+  "branchName": "ralph/research-paper-context-service",
+  "description": "MCP server + REST API + web frontend for discovering, vectorizing, and semantically searching research papers from Semantic Scholar using dual embeddings (OpenAI + SPECTER v2) stored in Zilliz Cloud",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Initialize Next.js TypeScript project with dependencies",
+      "description": "As a developer, I need the project scaffolded with all required dependencies so that subsequent stories can build on a working foundation.",
+      "acceptanceCriteria": [
+        "Next.js 14+ project with App Router and TypeScript initialized in project root",
+        "Tailwind CSS configured",
+        "Dependencies installed: @modelcontextprotocol/sdk, @zilliz/milvus2-sdk-node, @aws-sdk/client-lambda, dotenv",
+        "Project structure created: src/app/ (Next.js pages + API routes), src/lib/ (shared modules), lambda/ (Python Lambda code)",
+        ".gitignore includes node_modules, .env, .next, dist",
+        "Dev server starts without errors (npm run dev)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "dependsOn": [],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Create AWS Lambda embedding function and SAM template",
+      "description": "As a developer, I need a Python Lambda function that generates OpenAI embeddings so that embedding computation is serverless and scalable.",
+      "acceptanceCriteria": [
+        "lambda/lambda_function.py created with handler that accepts { \"text\": \"...\" } payload",
+        "Uses OpenAI text-embedding-3-small model to generate embedding",
+        "Returns { \"embedding\": [...], \"model\": \"text-embedding-3-small\", \"dimensions\": 1536 }",
+        "Reads OPENAI_API_KEY from Lambda environment variables",
+        "Handles errors: empty/missing text returns 400, OpenAI API failure returns 500 with error message",
+        "lambda/requirements.txt includes openai dependency",
+        "lambda/template.yaml (SAM template) defines the Lambda function with Python 3.12 runtime, 256MB memory, 30s timeout, and OPENAI_API_KEY as environment variable parameter",
+        "Lint passes (python files)"
+      ],
+      "priority": 1,
+      "dependsOn": [],
+      "passes": true,
+      "notes": "This is a Python project in the lambda/ subdirectory, independent of the TypeScript project"
+    },
+    {
+      "id": "US-003",
+      "title": "Set up .env configuration and validation",
+      "description": "As a developer, I need all secrets and configuration loaded from .env with validation so that the service is easy to configure and fails fast on misconfiguration.",
+      "acceptanceCriteria": [
+        ".env.example created with all variables documented with comments",
+        "Required variables: OPENAI_API_KEY, ZILLIZ_CLOUD_URI, ZILLIZ_CLOUD_TOKEN, AWS_REGION, AWS_LAMBDA_FUNCTION_NAME",
+        "Optional variable: SEMANTIC_SCHOLAR_API_KEY (noted as optional for higher rate limits)",
+        "src/lib/env.ts exports a validated config object that loads from .env using dotenv",
+        "If any required variable is missing, throws an error with a clear message listing which variables are missing",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "dependsOn": ["US-001"],
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Deploy Lambda to AWS and update .env",
+      "description": "As a developer, I need the Lambda function deployed to AWS so that the TypeScript server can invoke it for embedding generation.",
+      "acceptanceCriteria": [
+        "Lambda deployed using SAM CLI: sam build && sam deploy --guided (or equivalent)",
+        "Lambda function is live and responds to test invocation with a sample text payload",
+        "AWS_REGION and AWS_LAMBDA_FUNCTION_NAME values added to .env file",
+        "Test invocation returns a valid embedding array with 1536 dimensions"
+      ],
+      "priority": 2,
+      "dependsOn": ["US-002"],
+      "passes": false,
+      "notes": "Requires AWS CLI and SAM CLI to be installed and configured with valid credentials"
+    },
+    {
+      "id": "US-005",
+      "title": "Zilliz Cloud client with collection auto-creation",
+      "description": "As a developer, I need a Zilliz Cloud client module that auto-creates the collection on startup and provides insert/query/search functions.",
+      "acceptanceCriteria": [
+        "src/lib/zilliz.ts created using @zilliz/milvus2-sdk-node",
+        "Connects using ZILLIZ_CLOUD_URI and ZILLIZ_CLOUD_TOKEN from env config",
+        "On initialization, checks if research7_papers collection exists; creates it if not",
+        "Collection schema: paperId (VARCHAR 64, primary key), title (VARCHAR 512), authors (VARCHAR 2048), year (INT32), abstract (VARCHAR 8192), url (VARCHAR 512), vectorizedAt (INT64), openai_embedding (FLOAT_VECTOR dim=1536), specter_v2_embedding (FLOAT_VECTOR dim=768)",
+        "Index type: AUTOINDEX on both vector fields",
+        "Exports insertPaper(data) function to insert a paper record",
+        "Exports paperExists(paperId) function that returns boolean",
+        "Exports searchByVector(embedding, limit) function that performs ANN search on openai_embedding field and returns results with scores",
+        "Logs confirmation message when collection is created or already exists",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "dependsOn": ["US-003"],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Semantic Scholar API client",
+      "description": "As a developer, I need a client module for the Semantic Scholar API so that other modules can discover and fetch paper data.",
+      "acceptanceCriteria": [
+        "src/lib/semantic-scholar.ts created",
+        "searchPapers(query: string) calls GET https://api.semanticscholar.org/graph/v1/paper/autocomplete?query={query} and returns array of { id, title, authorsYear }",
+        "getPaper(paperId: string) calls GET https://api.semanticscholar.org/graph/v1/paper/{paperId}?fields=url,year,authors,abstract,embedding and returns full paper object including embedding.specter_v2",
+        "If SEMANTIC_SCHOLAR_API_KEY is set in env, includes it as x-api-key header",
+        "Handles 429 rate limit responses with informative error message",
+        "Handles network errors and non-200 responses gracefully",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "dependsOn": ["US-003"],
+      "passes": false,
+      "notes": "S2 autocomplete returns { matches: [{ id, title, authorsYear }] }"
+    },
+    {
+      "id": "US-007",
+      "title": "Paper search REST endpoint with vectorization status",
+      "description": "As a user, I want to search for papers and see which ones are already vectorized so that I know what's available.",
+      "acceptanceCriteria": [
+        "Next.js API route: GET /api/papers/search?q={query}",
+        "Calls Semantic Scholar autocomplete via semantic-scholar.ts client",
+        "For each result, checks Zilliz via paperExists() to determine vectorization status",
+        "Returns JSON array of { id, title, authorsYear, vectorized: boolean }",
+        "Returns 400 with error message if query param is missing or empty",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "dependsOn": ["US-005", "US-006"],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Vectorize paper REST endpoint with guard",
+      "description": "As a user, I want to trigger vectorization of a paper so that it becomes searchable, with a guard that prevents re-vectorizing already-vectorized papers.",
+      "acceptanceCriteria": [
+        "Next.js API route: POST /api/papers/[paperId]/vectorize",
+        "Checks if paperId already exists in Zilliz via paperExists()",
+        "If exists, returns 409 with { canVectorize: false, reason: \"Paper already vectorized\" }",
+        "If not exists, fetches paper from Semantic Scholar via getPaper()",
+        "Invokes AWS Lambda via @aws-sdk/client-lambda Lambda.invoke() to embed the abstract",
+        "Extracts specter_v2 embedding from Semantic Scholar response",
+        "Stores paper metadata + both embeddings in Zilliz via insertPaper() with vectorizedAt timestamp",
+        "Returns 200 with paper metadata and { vectorized: true, vectorizedAt: timestamp }",
+        "Returns 400 if paper has no abstract (cannot generate embedding)",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "dependsOn": ["US-004", "US-005", "US-006"],
+      "passes": true,
+      "notes": "src/lib/lambda.ts helper to invoke Lambda via AWS SDK and parse response"
+    },
+    {
+      "id": "US-009",
+      "title": "Semantic search REST endpoint",
+      "description": "As a user, I want to search across vectorized papers using natural language so that I can find relevant research semantically.",
+      "acceptanceCriteria": [
+        "Next.js API route: GET /api/papers/semantic-search?q={query}&limit={n}",
+        "Default limit is 5 if not provided",
+        "Invokes AWS Lambda via AWS SDK to embed the query text",
+        "Performs vector similarity search in Zilliz via searchByVector()",
+        "Returns JSON array of results with: paperId, title, authors, year, abstract (truncated to 500 chars), url, score (similarity)",
+        "Returns empty array with 200 if no papers are vectorized yet",
+        "Returns 400 if query param is missing or empty",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "dependsOn": ["US-004", "US-005"],
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "MCP server with tools and dual transports",
+      "description": "As an AI-Assisted Researcher, I want an MCP server exposing paper discovery, vectorization, and search tools so that I can use them from Claude Code or other MCP clients.",
+      "acceptanceCriteria": [
+        "src/mcp-server.ts created using @modelcontextprotocol/sdk",
+        "resolve-paper-id tool: accepts { query: string }, calls searchPapers(), returns list of { id, title, authorsYear }",
+        "fetch-paper tool: accepts { paperId: string }, runs the full vectorization pipeline (guard + fetch + embed + store), returns paper metadata with vectorization status",
+        "search-papers tool: accepts { query: string, limit?: number }, embeds query via Lambda, searches Zilliz, returns top-N papers with metadata and similarity score",
+        "Each tool has clear name, description, and JSON schema for parameters",
+        "Supports stdio transport by default",
+        "Supports SSE transport when started with --sse flag or SSE_PORT env var",
+        "package.json bin field set to allow running via npx or node dist/mcp-server.js",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "dependsOn": ["US-007", "US-008", "US-009"],
+      "passes": false,
+      "notes": "MCP tools reuse the same service functions as REST endpoints"
+    },
+    {
+      "id": "US-011",
+      "title": "Web frontend — paper search and vectorization UI",
+      "description": "As a Casual Paper Explorer, I want a web UI to search for papers and trigger vectorization so that I can manage my paper collection visually.",
+      "acceptanceCriteria": [
+        "Main page has a search input with debounced autocomplete (300ms delay)",
+        "As user types, calls GET /api/papers/search?q={query} and shows dropdown results",
+        "Each result displays: title, authorsYear, and vectorization status badge",
+        "Vectorized papers show green 'Vectorized' badge; non-vectorized show gray 'Not vectorized' badge",
+        "Non-vectorized papers have a 'Vectorize' button that calls POST /api/papers/{paperId}/vectorize",
+        "Already-vectorized papers have the 'Vectorize' button disabled",
+        "Loading spinner shown on the button while vectorization is in progress",
+        "Success toast shown after vectorization completes; badge updates to 'Vectorized'",
+        "Error toast shown if vectorization fails",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "dependsOn": ["US-007", "US-008"],
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Web frontend — semantic search view",
+      "description": "As a Casual Paper Explorer, I want to search my vectorized papers semantically from the web UI so that I can find related research by meaning.",
+      "acceptanceCriteria": [
+        "Separate 'Semantic Search' tab or section on the page, distinct from the paper discovery search",
+        "Text input for natural language queries with a 'Search' button",
+        "On submit, calls GET /api/papers/semantic-search?q={query}",
+        "Results list shows: similarity score (as percentage), title, authors, year, truncated abstract (first 200 chars)",
+        "Each result links to the paper on Semantic Scholar using the url field",
+        "Loading state shown while search is in progress",
+        "Empty state message when no papers are vectorized yet: 'No papers vectorized yet. Use the search above to find and vectorize papers.'",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "dependsOn": ["US-009", "US-011"],
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}
