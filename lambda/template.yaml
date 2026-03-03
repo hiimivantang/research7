@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Research7 - OpenAI embedding Lambda function
+
+Parameters:
+  OpenAIApiKey:
+    Type: String
+    Description: OpenAI API key for generating embeddings
+    NoEcho: true
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: python3.12
+
+Resources:
+  EmbeddingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda_function.handler
+      CodeUri: .
+      Description: Generates OpenAI text-embedding-3-small embeddings
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Ref OpenAIApiKey
+
+Outputs:
+  EmbeddingFunctionArn:
+    Description: ARN of the embedding Lambda function
+    Value: !GetAtt EmbeddingFunction.Arn
+  EmbeddingFunctionName:
+    Description: Name of the embedding Lambda function
+    Value: !Ref EmbeddingFunction
