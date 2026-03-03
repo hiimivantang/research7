@@ -69,7 +69,7 @@
       ],
       "priority": 2,
       "dependsOn": ["US-002"],
-      "passes": false,
+      "passes": true,
       "notes": "Requires AWS CLI and SAM CLI to be installed and configured with valid credentials"
     },
     {

@@ -163,6 +163,19 @@ Started: Tue  3 Mar 2026 16:06:41 +08
   - Tools return CallToolResult with JSON-stringified content; errors use isError: true
 ---
 
+## 2026-03-03 - US-004
+- Deployed Lambda function to AWS us-west-2 via SAM CLI
+- Stack name: research7-embedding
+- Function name: research7-embedding-EmbeddingFunction-jlAuTdq80tMe
+- Region: us-west-2
+- Test invocation successful: returns 1536-dimension embedding with text-embedding-3-small model
+- Updated .env with AWS_REGION and AWS_LAMBDA_FUNCTION_NAME, and aligned variable names to match env.ts expectations
+- **Learnings for future iterations:**
+  - SAM deploy with `--resolve-s3` auto-creates an S3 bucket for artifacts
+  - Use `--no-confirm-changeset` for non-interactive deployment
+  - The .env had different variable names (ZILLIZ_URI vs ZILLIZ_CLOUD_URI) — must match env.ts expectations exactly
+---
+
 ## 2026-03-03 - Build Fix
 - Fixed lazy initialization of env config, MilvusClient, and LambdaClient
 - Files modified: src/lib/env.ts, src/lib/zilliz.ts, src/lib/lambda.ts
