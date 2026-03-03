@@ -63,6 +63,9 @@ export async function initCollection(): Promise<void> {
         name: "abstract",
         data_type: DataType.VarChar,
         max_length: 8192,
+        enable_analyzer: true,
+        enable_match: true,
+        analyzer_params: { type: "english" },
       },
       {
         name: "url",
@@ -184,6 +187,37 @@ export async function searchByVector(
   });
 
   return res.results;
+}
+
+/**
+ * Full-text search on the `abstract` field using TEXT_MATCH.
+ * Returns papers whose abstract contains the given keywords.
+ */
+export async function searchByText(
+  text: string,
+  limit: number
+): Promise<
+  Array<{
+    [key: string]: unknown;
+  }>
+> {
+  const sanitized = text.replace(/'/g, "\\'");
+  const res = await getMilvusClient().query({
+    collection_name: COLLECTION_NAME,
+    filter: `TEXT_MATCH(abstract, '${sanitized}')`,
+    output_fields: [
+      "paperId",
+      "title",
+      "authors",
+      "year",
+      "abstract",
+      "url",
+      "vectorizedAt",
+    ],
+    limit,
+  });
+
+  return res.data;
 }
 
 export { getMilvusClient, COLLECTION_NAME };
