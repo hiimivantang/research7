@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "c532546bac28",
+  "strategy": "manual-commit",
+  "branch": "ralph/research-paper-context-service",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "src/app/page.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/c5/32546bac28/0/metadata.json",
+      "transcript": "/c5/32546bac28/0/full.jsonl",
+      "context": "/c5/32546bac28/0/context.md",
+      "content_hash": "/c5/32546bac28/0/content_hash.txt",
+      "prompt": "/c5/32546bac28/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 654,
+    "cache_creation_tokens": 51063,
+    "cache_read_tokens": 1954795,
+    "output_tokens": 17974,
+    "api_call_count": 38
+  }
+}
