@@ -31,6 +31,7 @@ export interface PaperEmbedding {
 /** Full paper object returned by getPaper. */
 export interface Paper {
   paperId: string;
+  title: string;
   url: string;
   year: number | null;
   authors: Author[];
