@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "e6062ae73077",
+  "session_id": "1ba369c8-f0b6-456b-9b98-d16c90e76a7f",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-03T08:43:16.566925Z",
+  "branch": "ralph/research-paper-context-service",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "src/lib/env.ts"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "c64f114e1790",
+  "token_usage": {
+    "input_tokens": 689,
+    "cache_creation_tokens": 75457,
+    "cache_read_tokens": 4730880,
+    "output_tokens": 25226,
+    "api_call_count": 71
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-03T08:43:16.018509Z",
+    "agent_lines": 0,
+    "human_added": 862,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 862,
+    "agent_percentage": 0
+  }
+}
