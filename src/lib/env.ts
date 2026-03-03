@@ -5,9 +5,9 @@ dotenv.config();
 export interface EnvConfig {
   /** OpenAI API key for generating text embeddings */
   OPENAI_API_KEY: string;
-  /** Zilliz Cloud connection URI */
+  /** Zilliz Cloud cluster connection URI */
   ZILLIZ_CLOUD_URI: string;
-  /** Zilliz Cloud API token */
+  /** Zilliz Cloud API token for authentication */
   ZILLIZ_CLOUD_TOKEN: string;
   /** AWS region where the Lambda function is deployed */
   AWS_REGION: string;
