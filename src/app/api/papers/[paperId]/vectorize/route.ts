@@ -49,18 +49,6 @@ export async function POST(
     // Generate OpenAI embedding for the abstract via Lambda
     const openaiEmbedding = await generateEmbedding(paper.abstract);
 
-    // Extract SPECTER v2 embedding from the Semantic Scholar response
-    const specterVector = paper.embedding?.specter_v2?.vector;
-    if (!specterVector || specterVector.length === 0) {
-      return NextResponse.json(
-        {
-          error:
-            "Paper does not have a SPECTER v2 embedding from Semantic Scholar.",
-        },
-        { status: 400 }
-      );
-    }
-
     // Build the paper record
     const vectorizedAt = Date.now();
     const authorsString = paper.authors.map((a) => a.name).join(", ");
@@ -75,7 +63,6 @@ export async function POST(
       url: paper.url,
       vectorizedAt,
       openai_embedding: openaiEmbedding,
-      specter_v2_embedding: specterVector,
     });
 
     // Return success with paper metadata

@@ -93,24 +93,6 @@ server.tool(
     // Generate OpenAI embedding via Lambda
     const openaiEmbedding = await generateEmbedding(paper.abstract);
 
-    // Extract SPECTER v2 embedding
-    const specterVector = paper.embedding?.specter_v2?.vector;
-    if (!specterVector || specterVector.length === 0) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify({
-              error: "Paper does not have a SPECTER v2 embedding from Semantic Scholar.",
-              paperId: paper.paperId,
-              title: paper.title,
-            }),
-          },
-        ],
-        isError: true,
-      };
-    }
-
     // Store in Zilliz
     const vectorizedAt = Date.now();
     const authorsString = paper.authors.map((a) => a.name).join(", ");
@@ -125,7 +107,6 @@ server.tool(
       url: paper.url,
       vectorizedAt,
       openai_embedding: openaiEmbedding,
-      specter_v2_embedding: specterVector,
     });
 
     return {

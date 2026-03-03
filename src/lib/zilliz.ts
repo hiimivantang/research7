@@ -85,20 +85,10 @@ export async function initCollection(): Promise<void> {
         data_type: DataType.FloatVector,
         dim: 1536,
       },
-      {
-        name: "specter_v2_embedding",
-        data_type: DataType.FloatVector,
-        dim: 768,
-      },
     ],
     index_params: [
       {
         field_name: "openai_embedding",
-        index_type: "AUTOINDEX",
-        metric_type: "COSINE",
-      },
-      {
-        field_name: "specter_v2_embedding",
         index_type: "AUTOINDEX",
         metric_type: "COSINE",
       },
@@ -129,7 +119,6 @@ export interface PaperRecord {
   url: string;
   vectorizedAt: number;
   openai_embedding: number[];
-  specter_v2_embedding: number[];
 }
 
 // ---------------------------------------------------------------------------
