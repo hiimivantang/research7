@@ -3,21 +3,25 @@ import config from "./env";
 
 const COLLECTION_NAME = "research7_papers";
 
-/**
- * Milvus/Zilliz Cloud client instance, connecting via gRPC.
- */
-const milvusClient = new MilvusClient({
-  address: config.ZILLIZ_CLOUD_URI,
-  token: config.ZILLIZ_CLOUD_TOKEN,
-  ssl: true,
-});
+let _milvusClient: MilvusClient | null = null;
+
+function getMilvusClient(): MilvusClient {
+  if (!_milvusClient) {
+    _milvusClient = new MilvusClient({
+      address: config.ZILLIZ_CLOUD_URI,
+      token: config.ZILLIZ_CLOUD_TOKEN,
+      ssl: true,
+    });
+  }
+  return _milvusClient;
+}
 
 /**
  * Checks whether the research7_papers collection exists and creates it
  * (with AUTOINDEX on both vector fields) if it does not.
  */
 export async function initCollection(): Promise<void> {
-  const hasRes = await milvusClient.hasCollection({
+  const hasRes = await getMilvusClient().hasCollection({
     collection_name: COLLECTION_NAME,
   });
 
@@ -32,7 +36,7 @@ export async function initCollection(): Promise<void> {
     `[zilliz] Collection "${COLLECTION_NAME}" not found — creating…`
   );
 
-  await milvusClient.createCollection({
+  await getMilvusClient().createCollection({
     collection_name: COLLECTION_NAME,
     fields: [
       {
@@ -95,7 +99,7 @@ export async function initCollection(): Promise<void> {
   });
 
   // Load the collection into memory so it is ready for search/query.
-  await milvusClient.loadCollection({
+  await getMilvusClient().loadCollection({
     collection_name: COLLECTION_NAME,
   });
 
@@ -129,7 +133,7 @@ export interface PaperRecord {
  */
 export async function insertPaper(data: PaperRecord): Promise<void> {
   const row: RowData = { ...data };
-  await milvusClient.insert({
+  await getMilvusClient().insert({
     collection_name: COLLECTION_NAME,
     data: [row],
   });
@@ -140,7 +144,7 @@ export async function insertPaper(data: PaperRecord): Promise<void> {
  * collection.
  */
 export async function paperExists(paperId: string): Promise<boolean> {
-  const res = await milvusClient.query({
+  const res = await getMilvusClient().query({
     collection_name: COLLECTION_NAME,
     filter: `paperId == "${paperId}"`,
     output_fields: ["paperId"],
@@ -163,7 +167,7 @@ export async function searchByVector(
     [key: string]: unknown;
   }>
 > {
-  const res = await milvusClient.search({
+  const res = await getMilvusClient().search({
     collection_name: COLLECTION_NAME,
     data: embedding,
     anns_field: "openai_embedding",
@@ -182,4 +186,4 @@ export async function searchByVector(
   return res.results;
 }
 
-export { milvusClient, COLLECTION_NAME };
+export { getMilvusClient, COLLECTION_NAME };

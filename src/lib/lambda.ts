@@ -5,7 +5,14 @@ import config from "./env";
 // Lambda client
 // ---------------------------------------------------------------------------
 
-const lambdaClient = new LambdaClient({ region: config.AWS_REGION });
+let _lambdaClient: LambdaClient | null = null;
+
+function getLambdaClient(): LambdaClient {
+  if (!_lambdaClient) {
+    _lambdaClient = new LambdaClient({ region: config.AWS_REGION });
+  }
+  return _lambdaClient;
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -40,7 +47,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     Payload: new TextEncoder().encode(JSON.stringify({ text })),
   });
 
-  const response = await lambdaClient.send(command);
+  const response = await getLambdaClient().send(command);
 
   if (response.FunctionError) {
     throw new Error(

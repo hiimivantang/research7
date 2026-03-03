@@ -46,6 +46,29 @@ function validateEnv(): EnvConfig {
   };
 }
 
-const config: EnvConfig = validateEnv();
+function getEnvValue(prop: string): string | undefined {
+  return process.env[prop] || undefined;
+}
+
+let _validated = false;
+
+const config = new Proxy({} as EnvConfig, {
+  get(_target, prop: string) {
+    // During Next.js build, env vars may not be set — defer validation to runtime
+    if (typeof prop !== "string") return undefined;
+    if (!_validated && typeof window === "undefined" && process.env.NEXT_PHASE !== "phase-production-build") {
+      const missing = REQUIRED_VARS.filter((key) => !process.env[key]);
+      if (missing.length > 0) {
+        throw new Error(
+          `Missing required environment variables:\n` +
+            missing.map((v) => `  - ${v}`).join("\n") +
+            `\n\nSee .env.example for documentation.`
+        );
+      }
+      _validated = true;
+    }
+    return getEnvValue(prop);
+  },
+});
 
 export default config;
